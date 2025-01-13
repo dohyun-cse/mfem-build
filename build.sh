@@ -29,8 +29,6 @@ if $force_rebuild; then
     -DMETIS_DIR=$PETSC_DIR \
     -DParMETIS_DIR=$PETSC_DIR \
     -DScaLAPACK_DIR=$PETSC_DIR/../petsc/arch-darwin-c-opt/externalpackages/git.scalapack/petsc-build \
-    -DSCALAPACK_OPT=$PETSC_DIR/../petsc/arch-darwin-c-opt/externalpackages/git.scalapack/petsc-build/SRC \
-    -DSCALAPACK_LIB=$PETSC_DIR \
     -DMFEM_USE_MUMPS=YES \
     -DMUMPS_DIR=$PETSC_DIR \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
