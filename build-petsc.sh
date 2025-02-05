@@ -14,7 +14,7 @@ cd $HOME/mfem/petsc
   --download-parmetis \
   COPTFLAGS="-O3 -march=native -mtune=native" \
   CXXOPTFLAGS="-O3 -march=native -mtune=native" \
-  FOPTFLAGS="-O3 -march=native -mtune=native" \
+  FOPTFLAGS="-O3 -march=native -mtune=native"
 
 make all
 make install

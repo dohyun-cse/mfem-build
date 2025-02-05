@@ -18,8 +18,8 @@ done
 if $force_rebuild; then
   echo "Rebuilding from scratch..."
   rm -rf build
-  mkdir build
-  cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
+  cmake \
+    -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DMFEM_USE_MPI=YES \
     -DHYPRE_DIR=$PETSC_DIR \
     -DMFEM_USE_PETSC=YES \
@@ -32,10 +32,8 @@ if $force_rebuild; then
     -DMFEM_USE_MUMPS=YES \
     -DMUMPS_DIR=$PETSC_DIR \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
-    -DCMAKE_MAKE_PROGRAM=gmake \
-    -S . -B build
+    -S . -B ./build
 fi
-rm compile_commands.json
-ln -s build/compile_commands.json .
+ln -sf build/compile_commands.json .
 cd build
-cmake --build . --target all -j8
+make -j8
