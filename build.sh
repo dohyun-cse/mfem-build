@@ -31,6 +31,8 @@ if $force_rebuild; then
     -DScaLAPACK_DIR=$PETSC_DIR/../petsc/arch-darwin-c-opt/externalpackages/git.scalapack/petsc-build \
     -DMFEM_USE_MUMPS=YES \
     -DMUMPS_DIR=$PETSC_DIR \
+    -DMFEM_USE_SUITESPARSE=YES \
+    -DSUITESPARSE_DIR=$PETSC_DIR \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
     -S . -B ./build
 fi

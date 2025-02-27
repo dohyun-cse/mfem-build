@@ -9,12 +9,12 @@ cd $HOME/mfem/petsc
   --download-hypre \
   --download-mumps \
   --download-scalapack \
+  --download-suitesparse \
   --download-openblas \
   --download-metis \
   --download-parmetis \
   COPTFLAGS="-O3 -march=native -mtune=native" \
-  CXXOPTFLAGS="-O3 -march=native -mtune=native" \
-  FOPTFLAGS="-O3 -march=native -mtune=native"
+  CXXOPTFLAGS="-O3 -march=native -mtune=native"
 
 make all
 make install
