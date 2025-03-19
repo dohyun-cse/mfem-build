@@ -18,6 +18,8 @@ done
 if $force_rebuild; then
   echo "Rebuilding from scratch..."
   rm -rf build
+  export PETSC_DIR=$HOME/mfem/petsc-install
+  export PETSC_ARCH=""
   cmake \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DMFEM_USE_MPI=YES \
@@ -32,7 +34,7 @@ if $force_rebuild; then
     -DMFEM_USE_MUMPS=YES \
     -DMUMPS_DIR=$PETSC_DIR \
     -DMFEM_USE_SUITESPARSE=YES \
-    -DSUITESPARSE_DIR=$PETSC_DIR \
+    -DSUITESPARSE_DIR=/usr/local \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
     -S . -B ./build
 fi
