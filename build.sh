@@ -7,6 +7,7 @@ while getopts ":fg" opt; do
       ;;
     g )
       BUILD_TYPE="DEBUG"
+      echo "Building in debug mode..."
       ;;
     * )
       echo "Usage: $0 [-f]"
@@ -38,6 +39,9 @@ if $force_rebuild; then
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
     -S . -B ./build
 fi
-ln -sf build/compile_commands.json .
+cat > .clangd <<EOF
+CompileFlags:
+  CompilationDatabase: build
+EOF
 cd build
 make -j8
