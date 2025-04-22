@@ -1,10 +1,11 @@
-unset PETSC_DIR
-unset PETSC_ARCH
-rm -r $HOME/mfem/petsc-install
-mkdir $HOME/mfem/petsc-install
-cd $HOME/mfem/petsc
+PETSC_SOURCE_DIR=$HOME/mfem/petsc
+PETSC_INSTALL_DIR=$HOME/mfem/petsc-install
+rm -r $PETSC_INSTALL_DIR
+rm -r $PETSC_SOURCE_DIR/arch-*
+
+mkdir $PETSC_INSTALL_DIR
 ./configure \
-  --prefix=$HOME/mfem/petsc-install \
+  --prefix=$PETSC_INSTALL_DIR \
   --with-debugging=0 \
   --download-hypre \
   --download-mumps \
@@ -18,5 +19,3 @@ cd $HOME/mfem/petsc
 
 make all
 make install
-export PETSC_DIR=$HOME/mfem/petsc-install
-export PETSC_ARCH=""

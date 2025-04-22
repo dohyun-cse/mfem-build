@@ -1,0 +1,11 @@
+If:
+  PathMatch: <MFEM_DIR>/*
+CompileFlags:
+  CompilationDatabase: <MFEM_DIR>/build
+---
+If:
+  PathMatch: <PROJECT>/*
+CompileFlags:
+  CompilationDatabase: <PROJECT>
+  Add: -I<MFEM_DIR>/build
+

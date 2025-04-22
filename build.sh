@@ -1,4 +1,7 @@
 force_rebuild=false
+PETSC_SOURCE_DIR=$HOME/mfem/petsc
+PETSC_INSTALL_DIR=$HOME/mfem/petsc-install
+PETSC_ARCH="arch-darwin-c-opt"
 BUILD_TYPE="RELEASE"
 while getopts ":fg" opt; do
   case ${opt} in
@@ -19,29 +22,28 @@ done
 if $force_rebuild; then
   echo "Rebuilding from scratch..."
   rm -rf build
-  export PETSC_DIR=$HOME/mfem/petsc-install
-  export PETSC_ARCH=""
   cmake \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DMFEM_USE_MPI=YES \
-    -DHYPRE_DIR=$PETSC_DIR \
+    -DHYPRE_DIR=$PETSC_INSTALL_DIR \
     -DMFEM_USE_PETSC=YES \
-    -DPETSC_DIR=$PETSC_DIR \
+    -DPETSC_DIR=$PETSC_INSTALL_DIR \
     -DPETSC_ARCH="" \
     -DMFEM_USE_METIS_5=YES \
-    -DMETIS_DIR=$PETSC_DIR \
-    -DParMETIS_DIR=$PETSC_DIR \
-    -DScaLAPACK_DIR=$PETSC_DIR/../petsc/arch-darwin-c-opt/externalpackages/git.scalapack/petsc-build \
+    -DMETIS_DIR=$PETSC_INSTALL_DIR \
+    -DParMETIS_DIR=$PETSC_INSTALL_DIR \
+    -DScaLAPACK_DIR=$PETSC_SOURCE_DIR/$PETSC_ARCH/externalpackages/git.scalapack/petsc-build \
     -DMFEM_USE_MUMPS=YES \
-    -DMUMPS_DIR=$PETSC_DIR \
+    -DMUMPS_DIR=$PETSC_INSTALL_DIR \
     -DMFEM_USE_SUITESPARSE=YES \
-    -DSUITESPARSE_DIR=/usr/local \
+    -DSuiteSparse_DIR=$PETSC_INSTALL_DIR/include \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
     -S . -B ./build
 fi
 cat > .clangd <<EOF
 CompileFlags:
   CompilationDatabase: build
+  Add: [-DMFEM_CONFIG_FILE="${PWD}/build/config/_config.hpp"]
 EOF
 cd build
 make -j8
