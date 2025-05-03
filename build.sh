@@ -3,6 +3,7 @@ PETSC_SOURCE_DIR=$HOME/mfem/petsc
 PETSC_INSTALL_DIR=$HOME/mfem/petsc-install
 PETSC_ARCH="arch-darwin-c-opt"
 BUILD_TYPE="RELEASE"
+BUILD_DIR="./build"
 while getopts ":fg" opt; do
   case ${opt} in
     f )
@@ -10,6 +11,7 @@ while getopts ":fg" opt; do
       ;;
     g )
       BUILD_TYPE="DEBUG"
+      BUILD_DIR="./build-debug"
       echo "Building in debug mode..."
       ;;
     * )
@@ -21,7 +23,7 @@ done
 
 if $force_rebuild; then
   echo "Rebuilding from scratch..."
-  rm -rf build
+  rm -rf $BUILD_DIR
   cmake \
     -DCMAKE_BUILD_TYPE=$BUILD_TYPE \
     -DMFEM_USE_MPI=YES \
@@ -38,12 +40,12 @@ if $force_rebuild; then
     -DMFEM_USE_SUITESPARSE=YES \
     -DSuiteSparse_DIR=$PETSC_INSTALL_DIR/include \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
-    -S . -B ./build
+    -S . -B $BUILD_DIR
 fi
 cat > .clangd <<EOF
 CompileFlags:
   CompilationDatabase: build
-  Add: [-DMFEM_CONFIG_FILE="${PWD}/build/config/_config.hpp"]
+  Add: [-DMFEM_CONFIG_FILE="${PWD}/${BUILD_DIR}/config/_config.hpp"]
 EOF
-cd build
+cd $BUILD_DIR
 make -j8
