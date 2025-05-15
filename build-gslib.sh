@@ -1,9 +1,10 @@
-force_rebuild=false
-BUILD_TYPE="RELEASE"
-while getopts ":g" opt; do
+PETSC_SOURCE_DIR=$HOME/mfem/petsc
+PETSC_INSTALL_DIR=$HOME/mfem/petsc/build
+PETSC_ARCH="arch-darwin-c-opt"
+while getopts ":fg" opt; do
   case ${opt} in
     g )
-      BUILD_TYPE="DEBUG"
+      PETSC_INSTALL_DIR=$HOME/mfem/petsc/build-debug
       echo "Building in debug mode..."
       ;;
     * )
@@ -13,29 +14,14 @@ while getopts ":g" opt; do
   esac
 done
 
-echo "Rebuilding from scratch..."
-export PETSC_DIR=$HOME/mfem/petsc-install
-export PETSC_ARCH=""
-make \
+make parallel \
   MFEM_USE_PETSC=YES \
-  PETSC_DIR=$PETSC_DIR \
+  PETSC_DIR=$PETSC_INSTALL_DIR \
   PETSC_ARCH="" \
-  MFEM_USE_MPI=YES \
-  HYPRE_DIR=$PETSC_DIR \
+  HYPRE_DIR=$PETSC_INSTALL_DIR \
   MFEM_USE_METIS_5=YES \
-  METIS_DIR=$PETSC_DIR \
-  ParMETIS_DIR=$PETSC_DIR \
-  ScaLAPACK_DIR=$PETSC_DIR/../petsc/arch-darwin-c-opt/externalpackages/git.scalapack/petsc-build \
-  MFEM_USE_MUMPS=YES \
-  MUMPS_DIR=$PETSC_DIR \
+  METIS_DIR=$PETSC_INSTALL_DIR \
   MFEM_USE_GSLIB=YES \
-  GSLIB_DIR=../gslib/build \
-  MFEM_USE_SUITESPARSE=YES \
-  SUITESPARSE_DIR=$PETSC_DIR \
+  GSLIB_DIR=$(pwd)/../gslib/build \
+  MFEM_USE_HIOP=YES \
   -j8
-
-cat > .clangd <<EOF
-CompileFlags:
-  CompilationDatabase: build
-  Add: [-DMFEM_CONFIG_FILE="${PWD}/build/config/_config.hpp"]
-EOF

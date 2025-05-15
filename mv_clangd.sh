@@ -4,7 +4,7 @@ PROJECT="$(realpath "${PROJECT:-$PWD}")"
 
 # defaults
 DEFAULT_BASE_DIR="$HOME/mfem"
-DEFAULT_MFEM_REL_DIR="mfem"
+DEFAULT_MFEM_REL_DIR="mfem/build"
 
 # parse optional arguments.
 # If `MFEM_DIR` is set, BASE_DIR and MFEM_REL_DIR are ignored.

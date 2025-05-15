@@ -1,11 +1,13 @@
-PETSC_SOURCE_DIR=$HOME/mfem/petsc
-PETSC_INSTALL_DIR=$HOME/mfem/petsc-install
-rm -r $PETSC_INSTALL_DIR
-rm -r $PETSC_SOURCE_DIR/arch-*
+PETSC_SOURCE_DIR=$(pwd)
+PETSC_RELEASE_DIR=$PETSC_SOURCE_DIR/build
+PETSC_DEBUG_DIR=$PETSC_SOURCE_DIR/build-debug
 
-mkdir $PETSC_INSTALL_DIR
+# RELEASE BUILD
+rm -r $PETSC_SOURCE_DIR/arch-*-opt
+rm -r $PETSC_RELEASE_DIR
+mkdir $PETSC_RELEASE_DIR
 ./configure \
-  --prefix=$PETSC_INSTALL_DIR \
+  --prefix=$PETSC_RELEASE_DIR \
   --with-debugging=0 \
   --download-hypre \
   --download-mumps \
@@ -14,8 +16,9 @@ mkdir $PETSC_INSTALL_DIR
   --download-openblas \
   --download-metis \
   --download-parmetis \
+  FOPTFLAGS="-O3" \
   COPTFLAGS="-O3 -march=native -mtune=native" \
   CXXOPTFLAGS="-O3 -march=native -mtune=native"
 
 make all
-make install
+make PETSC_DIR=$PETSC_SOURCE_DIR PETSC_ARCH=arch-darwin-c-opt install
