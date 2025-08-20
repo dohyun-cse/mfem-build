@@ -1,7 +1,10 @@
 force_rebuild=false
+
+# Set PETSc paths
 PETSC_SOURCE_DIR=$HOME/mfem/petsc
 PETSC_DIR=$HOME/mfem/petsc/build
 PETSC_ARCH="arch-darwin-c-opt"
+
 BUILD_TYPE="RELEASE"
 BUILD_DIR="./build"
 
@@ -31,14 +34,14 @@ cmake \
   -DMETIS_DIR=$PETSC_DIR \
   -DParMETIS_DIR=$PETSC_DIR \
   -DScaLAPACK_DIR=$PETSC_SOURCE_DIR/$PETSC_ARCH/externalpackages/git.scalapack/petsc-build \
+  -DMFEM_USE_SUITESPARSE=YES \
   -DMFEM_USE_MUMPS=YES \
   -DMUMPS_DIR=$PETSC_DIR \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
   -S . -B $BUILD_DIR
 cat > .clangd <<EOF
 CompileFlags:
-  CompilationDatabase: build
-  Add: [-DMFEM_CONFIG_FILE="${PWD}/${BUILD_DIR}/config/_config.hpp"]
+  CompilationDatabase: $BUILD_DIR
 EOF
 cd $BUILD_DIR
 make -j8

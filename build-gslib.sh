@@ -1,10 +1,10 @@
 PETSC_SOURCE_DIR=$HOME/mfem/petsc
 PETSC_INSTALL_DIR=$HOME/mfem/petsc/build
-PETSC_ARCH="arch-darwin-c-opt"
+TARGET="parallel"
 while getopts ":fg" opt; do
   case ${opt} in
     g )
-      PETSC_INSTALL_DIR=$HOME/mfem/petsc/build-debug
+      TARGET="pdebug"
       echo "Building in debug mode..."
       ;;
     * )
@@ -14,14 +14,13 @@ while getopts ":fg" opt; do
   esac
 done
 
-make parallel \
-  MFEM_USE_PETSC=YES \
-  PETSC_DIR=$PETSC_INSTALL_DIR \
-  PETSC_ARCH="" \
+make $TARGET \
   HYPRE_DIR=$PETSC_INSTALL_DIR \
+  HYPRE_LIB="-L$PETSC_INSTALL_DIR/lib -lHYPRE -Wl,-rpath,$PETSC_INSTALL_DIR/lib" \
   MFEM_USE_METIS_5=YES \
   METIS_DIR=$PETSC_INSTALL_DIR \
   MFEM_USE_GSLIB=YES \
   GSLIB_DIR=$(pwd)/../gslib/build \
   MFEM_USE_HIOP=YES \
+  HIOP_DIR=$(pwd)/../hiop/install \
   -j8
