@@ -1,11 +1,15 @@
-PETSC_SOURCE_DIR=$(pwd)
-PETSC_RELEASE_DIR=$PETSC_SOURCE_DIR/build
+PETSC_DIR=$(pwd)
+BUILD_DIR=build
+PETSC_ARCH=arch-darwin-c-opt
 
 # RELEASE BUILD
-rm -r $PETSC_RELEASE_DIR
-mkdir $PETSC_RELEASE_DIR
+rm -rf $BUILD_DIR
+mkdir $BUILD_DIR
+
+rm -rf $PETSC_ARCH
+
 ./configure \
-  --prefix=$PETSC_RELEASE_DIR \
+  --prefix=$BUILD_DIR \
   --with-debugging=0 \
   --download-hypre \
   --download-mumps \
@@ -18,5 +22,6 @@ mkdir $PETSC_RELEASE_DIR
   COPTFLAGS="-O3 -march=native -mtune=native" \
   CXXOPTFLAGS="-O3 -march=native -mtune=native"
 
-make all
-make PETSC_DIR=$PETSC_SOURCE_DIR PETSC_ARCH=arch-darwin-c-opt install
+make PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH all -j8
+make PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH install -j8
+make PETSC_DIR=$PETSC_DIR PETSC_ARCH=$PETSC_ARCH check
