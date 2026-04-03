@@ -36,9 +36,5 @@ cmake \
   -DMFEM_USE_HIOP=YES \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
   -S . -B $BUILD_DIR
-cat > .clangd <<EOF
-CompileFlags:
-  CompilationDatabase: $BUILD_DIR
-EOF
 cd $BUILD_DIR
 make -j8
