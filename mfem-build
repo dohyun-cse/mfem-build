@@ -1,0 +1,179 @@
+#!/usr/bin/env bash
+# Configure and build an MFEM source tree.
+#
+#   mfem-build [-c layers] [-m machine] [-g] [-S src] [-B build] [-j jobs]
+#              [--clean] [--astyle] [target ...]
+#
+#   -c layers   configs/ layers joined by '+', e.g. full, full+cuda
+#               (default: full)
+#   -m machine  machines/<machine>.cmake (default: $MFEM_BUILD_MACHINE,
+#               $LCSCHEDCLUSTER, machines/hosts, then the short hostname
+#               without trailing digits)
+#   -g          Debug build
+#   -S src      MFEM source tree (default: current directory)
+#   -B build    build directory (default: <src>/build[-debug] for full,
+#               <src>/build-<layers>[-debug] otherwise)
+#   -j jobs     parallel jobs (default: number of cores)
+#   --clean     delete the build directory first
+#   --astyle    link <src>/.astylerc to config/mfem.astylerc
+#   target      build targets (default: mfem)
+#
+# A build directory is configured once, when it is created; later runs only
+# build, so rebuilds are incremental. Changing the layers or the machine of
+# an existing build directory requires --clean.
+#
+# Precedence: local.cmake (git-ignored, optional), then the machine file,
+# then the layers; the first file to set a cache variable wins.
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+layers=full
+machine="${MFEM_BUILD_MACHINE:-}"
+build_type=Release
+src="$PWD"
+build=""
+jobs=""
+clean=0
+astyle=0
+targets=()
+
+usage() { sed -n '2,25p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; }
+die() { echo "mfem-build: $*" >&2; exit 1; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -c) layers="$2"; shift 2 ;;
+    -m) machine="$2"; shift 2 ;;
+    -g) build_type=Debug; shift ;;
+    -S) src="$(cd "$2" && pwd)"; shift 2 ;;
+    -B) build="$2"; shift 2 ;;
+    -j) jobs="$2"; shift 2 ;;
+    --clean) clean=1; shift ;;
+    --astyle) astyle=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    -*) usage >&2; die "unknown option $1" ;;
+    *) targets+=("$1"); shift ;;
+  esac
+done
+
+# --- machine ----------------------------------------------------------------
+if [[ -z "$machine" && -n "${LCSCHEDCLUSTER:-}" ]]; then
+  machine="$LCSCHEDCLUSTER"
+fi
+if [[ -z "$machine" ]]; then
+  host="$(hostname -s)"
+  while read -r pattern name; do
+    [[ -z "$pattern" || "$pattern" == \#* ]] && continue
+    # shellcheck disable=SC2053
+    if [[ "$host" == $pattern ]]; then machine="$name"; break; fi
+  done < "$root/machines/hosts"
+  if [[ -z "$machine" ]]; then
+    machine="$(echo "$host" | tr '[:upper:]' '[:lower:]' | sed 's/[0-9]*$//')"
+  fi
+fi
+machine_file="$root/machines/$machine.cmake"
+if [[ ! -f "$machine_file" ]]; then
+  echo "mfem-build: no machine file $machine_file; available:" >&2
+  for f in "$root"/machines/*.cmake; do echo "  $(basename "$f" .cmake)" >&2; done
+  die "use -m <machine> or add machines/$machine.cmake"
+fi
+if [[ -f "$root/machines/$machine.sh" ]]; then
+  # shellcheck disable=SC1090
+  source "$root/machines/$machine.sh"
+fi
+
+# --- layers -------------------------------------------------------------------
+IFS='+' read -r -a layer_list <<< "$layers"
+variant=cpu
+for l in "${layer_list[@]}"; do
+  [[ -f "$root/configs/$l.cmake" ]] || die "no layer configs/$l.cmake"
+  [[ "$l" == cuda || "$l" == hip ]] && variant="$l"
+done
+
+if [[ ! -f "$src/CMakeLists.txt" || ! -d "$src/linalg" ]]; then
+  die "$src is not an MFEM source tree"
+fi
+if [[ -z "$build" ]]; then
+  suffix=""
+  [[ "$layers" != full ]] && suffix="-$layers"
+  [[ $build_type == Debug ]] && suffix="$suffix-debug"
+  build="$src/build$suffix"
+fi
+[[ ${#targets[@]} -eq 0 ]] && targets=(mfem)
+[[ -z "$jobs" ]] && jobs="$(sysctl -n hw.ncpu 2>/dev/null || nproc)"
+
+if [[ $clean -eq 1 ]]; then
+  echo "mfem-build: removing $build"
+  rm -rf "$build"
+fi
+
+# --- configure once, then build ------------------------------------------------
+cache="$build/CMakeCache.txt"
+cached() { sed -n "s/^$1:[A-Z]*=//p" "$cache"; }
+# Configured: the cache and the generated build files exist (a failed
+# configure leaves only the cache, and is simply rerun).
+if [[ -f "$cache" && ( -f "$build/Makefile" || -f "$build/build.ninja" ) ]]
+then
+  for pair in "MFEM_BUILD_CONFIG:$layers" "MFEM_BUILD_MACHINE:$machine"; do
+    var="${pair%%:*}"; want="${pair#*:}"; have="$(cached "$var")"
+    if [[ -n "$have" && "$have" != "$want" ]]; then
+      die "$build has $var=$have, not $want; rerun with --clean"
+    fi
+  done
+  # Cached paths that disappeared, e.g. after a package-manager upgrade.
+  missing=""
+  for prefix in $(cached MFEM_BUILD_WATCH_PREFIXES | tr ';' ' '); do
+    missing+="$(grep -o "$prefix/[^;\" ]*" "$cache" | sort -u |
+                while read -r p; do [[ -e "$p" ]] || echo "  $p"; done)"
+  done
+  if [[ -n "$missing" ]]; then
+    echo "mfem-build: $build refers to paths that no longer exist:" >&2
+    echo "$missing" >&2
+    die "rerun with --clean"
+  fi
+  # The files this build includes: common, local, machine, the layers and
+  # the layers they include.
+  used=("$root/configs/common.cmake" "$root/local.cmake" "$machine_file")
+  queue=("${layer_list[@]}")
+  while [[ ${#queue[@]} -gt 0 ]]; do
+    l="${queue[0]}"; queue=("${queue[@]:1}")
+    used+=("$root/configs/$l.cmake")
+    for inc in $(sed -n 's/^include(\${CMAKE_CURRENT_LIST_DIR}\/\(.*\)\.cmake)/\1/p' \
+                   "$root/configs/$l.cmake"); do
+      queue+=("$inc")
+    done
+  done
+  for f in "${used[@]}"; do
+    if [[ -f "$f" && "$f" -nt "$cache" ]]; then
+      echo "mfem-build: warning: $(basename "$f") changed after $build was" \
+           "configured; rerun with --clean to apply it" >&2
+    fi
+  done
+else
+  mkdir -p "$build"
+  init="$build/mfem-build-init.cmake"
+  {
+    echo "# Generated by mfem-build; passed to cmake -C."
+    echo "set(MFEM_BUILD_CONFIG \"$layers\" CACHE STRING \"\")"
+    echo "set(MFEM_BUILD_MACHINE \"$machine\" CACHE STRING \"\")"
+    echo "set(MFEM_BUILD_VARIANT \"$variant\" CACHE STRING \"\")"
+    echo "include(\"$root/configs/common.cmake\")"
+    [[ -f "$root/local.cmake" ]] && echo "include(\"$root/local.cmake\")"
+    echo "include(\"$machine_file\")"
+    for l in "${layer_list[@]}"; do echo "include(\"$root/configs/$l.cmake\")"; done
+    echo 'foreach(_mpi MPI_C_COMPILER MPI_CXX_COMPILER)'
+    echo '  if (DEFINED ${_mpi} AND NOT EXISTS "${${_mpi}}")'
+    echo '    message(FATAL_ERROR "mfem-build: ${_mpi}=${${_mpi}} does not exist '
+    echo '            (missing module load?)")'
+    echo '  endif()'
+    echo 'endforeach()'
+  } > "$init"
+  echo "mfem-build: configuring $build ($layers, $machine, $build_type)"
+  cmake -C "$init" -DCMAKE_BUILD_TYPE="$build_type" -S "$src" -B "$build"
+fi
+
+cmake --build "$build" --parallel "$jobs" --target "${targets[@]}"
+
+if [[ $astyle -eq 1 ]]; then
+  ln -sf config/mfem.astylerc "$src/.astylerc"
+fi

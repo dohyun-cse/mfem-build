@@ -1,0 +1,9 @@
+# The global ~/.gitignore ignores files without an extension and dotfiles;
+# track this repository's own.
+!.gitignore
+!.clangd
+!mfem-build
+!machines/hosts
+
+local.cmake
+Testing/

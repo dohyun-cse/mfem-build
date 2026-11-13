@@ -1,0 +1,8 @@
+# <hostname glob> <machine>: maps hosts whose name is not a machine file.
+# Without a match, the machine is the short hostname, lower case, with
+# trailing digits removed (dane123 -> dane); $LCSCHEDCLUSTER wins on LC.
+Brown-GKH2J5L*  dkim-mac
+# Brown CCV Oscar: login and compute nodes
+login[0-9]*     oscar
+node[0-9]*      oscar
+gpu[0-9]*       oscar
